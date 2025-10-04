@@ -1,17 +1,37 @@
 import streamlit as st
 import requests
-
-# Load movie data and similarity matrix
 import gzip
 import pickle
+import os
+import time
 
-with gzip.open('movies.pkl.gz', 'rb') as f:
-    movies_data = pickle.load(f)
+# ------------------------------
+# File paths (works locally & on Render)
+# ------------------------------
+BASE_DIR = os.path.dirname(__file__)
+MOVIES_FILE = os.path.join(BASE_DIR, 'movies.pkl.gz')
+SIMILARITY_FILE = os.path.join(BASE_DIR, 'similarity.pkl.gz')
 
-with gzip.open('similarity.pkl.gz', 'rb') as f:
-    movies_similarity = pickle.load(f)
+# ------------------------------
+# Load movie data and similarity matrix
+# ------------------------------
+try:
+    with gzip.open(MOVIES_FILE, 'rb') as f:
+        movies_data = pickle.load(f)
+except FileNotFoundError:
+    st.error(f"Could not find {MOVIES_FILE}. Make sure it is in the repo.")
+    st.stop()
 
+try:
+    with gzip.open(SIMILARITY_FILE, 'rb') as f:
+        movies_similarity = pickle.load(f)
+except FileNotFoundError:
+    st.error(f"Could not find {SIMILARITY_FILE}. Make sure it is in the repo.")
+    st.stop()
 
+# ------------------------------
+# Custom CSS
+# ------------------------------
 st.markdown(
     """
     <style>
@@ -23,13 +43,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
+# ------------------------------
 # Fetch poster from TMDB
-import time
+# ------------------------------
+TMDB_API_KEY = "bfce2fc336baec9af3883a9940ebbd89"
 
 def fetch_poster(movie_id, retries=3, delay=1):
-    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=bfce2fc336baec9af3883a9940ebbd89"
-    
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={TMDB_API_KEY}"
     for attempt in range(retries):
         try:
             response = requests.get(url, timeout=5)
@@ -44,32 +64,40 @@ def fetch_poster(movie_id, retries=3, delay=1):
                 print(f"Attempt {attempt+1}: Status code {response.status_code}")
         except Exception as e:
             print(f"Attempt {attempt+1} failed: {e}")
-        
-        time.sleep(delay)  # wait before retrying
-    
+        time.sleep(delay)
     return None
 
-
-# Get top 5 recommended movie IDs and titles
-def get_reccomendations(movie_title):
-    movie_index = movies_data[movies_data['title'] == movie_title].index[0]
-    distance = movies_similarity[movie_index]
-    movie_list = sorted(list(enumerate(distance)), reverse=True, key=lambda x: x[1])[1:6]
+# ------------------------------
+# Get top 5 recommended movies
+# ------------------------------
+def get_recommendations(movie_title):
+    try:
+        movie_index = movies_data[movies_data['title'] == movie_title].index[0]
+    except IndexError:
+        return []
     
-    recommended_movies = []
-    for i in movie_list:
+    distances = movies_similarity[movie_index]
+    top_indices = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
+    
+    recommendations = []
+    for i in top_indices:
         movie_id = movies_data.iloc[i[0]].id
-        movie_title = movies_data.iloc[i[0]].title
-        recommended_movies.append((movie_title, movie_id))
-    return recommended_movies
+        title = movies_data.iloc[i[0]].title
+        recommendations.append((title, movie_id))
+    return recommendations
 
+# ------------------------------
 # Streamlit UI
-st.title("Movie Recommender System")
+# ------------------------------
+st.title("Movie Recommender System 🎬")
 
 option = st.selectbox('Choose a movie:', movies_data['title'])
 
 if st.button("Recommend"):
-    recommendations = get_reccomendations(option)
+    recommendations = get_recommendations(option)
+    
+    if not recommendations:
+        st.warning("No recommendations found!")
     
     for title, movie_id in recommendations:
         poster_url = fetch_poster(movie_id)
