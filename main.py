@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-import gzip
 import pickle
 import os
 import time
@@ -16,14 +15,14 @@ SIMILARITY_FILE = os.path.join(BASE_DIR, 'similarity.pkl')
 # Load movie data and similarity matrix
 # ------------------------------
 try:
-    with gzip.open(MOVIES_FILE, 'rb') as f:
+    with open(MOVIES_FILE, 'rb') as f:
         movies_data = pickle.load(f)
 except FileNotFoundError:
     st.error(f"Could not find {MOVIES_FILE}. Make sure it is in the repo.")
     st.stop()
 
 try:
-    with gzip.open(SIMILARITY_FILE, 'rb') as f:
+    with open(SIMILARITY_FILE, 'rb') as f:
         movies_similarity = pickle.load(f)
 except FileNotFoundError:
     st.error(f"Could not find {SIMILARITY_FILE}. Make sure it is in the repo.")
