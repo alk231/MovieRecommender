@@ -9,8 +9,8 @@ import time
 # File paths (works locally & on Render)
 # ------------------------------
 BASE_DIR = os.path.dirname(__file__)
-MOVIES_FILE = os.path.join(BASE_DIR, 'movies.pkl.gz')
-SIMILARITY_FILE = os.path.join(BASE_DIR, 'similarity.pkl.gz')
+MOVIES_FILE = os.path.join(BASE_DIR, 'movies.pkl')
+SIMILARITY_FILE = os.path.join(BASE_DIR, 'similarity.pkl')
 
 # ------------------------------
 # Load movie data and similarity matrix
